@@ -94,7 +94,7 @@ int main(void)
 }
 
 
-double sapn_solar_spounge(bool display)
+double sapn_solar_sponge(bool display)
 {
 	double networkwhprice_tod;
 	time_t now;
@@ -146,7 +146,7 @@ void parse_amber_json(char *ptr)
 
 	/* SA Power Networks provides a Residential Time of Use ('Solar Sponge') Network Tariff.
 	 * Amber doesn't yet support this pricing structure, so we correct for it ourselves. */
-	sapn_solar_spounge(true);
+	sapn_solar_sponge(true);
 
 	cJSON *staticPrices = cJSON_GetObjectItemCaseSensitive(data, "staticPrices");
 	/* Amber has four staticPrices arrays labelled E1, E2, B1 and B1PFIT.
@@ -202,13 +202,13 @@ void parse_amber_json(char *ptr)
 	printf("Network Charge (Amber)		= %3.3lf c/kWh\r\n", networkwhprice->valuedouble);
 	/* SA Power Networks provides a Residential Time of Use ('Solar Sponge') Network Tariff.
 	 * Amber doesn't yet support this pricing structure, so we correct for it ourselves. */
-	printf("Network Charge (Actual)		= %3.2lf c/kWh\r\n", sapn_solar_spounge(false));
+	printf("Network Charge (Actual)		= %3.2lf c/kWh\r\n", sapn_solar_sponge(false));
 	printf("Market Charges			= %3.3lf c/kWh\r\n", marketkwhprice->valuedouble);
 	printf("100%% Green Power Offset		= %3.3lf c/kWh\r\n", greenkwhprice->valuedouble);
 	printf("Carbon Neutral Offset		= %3.3lf c/kWh\r\n", carbonneutralkwhprice->valuedouble);
 	printf("Total (Amber)			= %3.3lf c/kWh\r\n", totalfixedkwhprice->valuedouble);
 	
-	totalfixed_kwh = 	sapn_solar_spounge(false) +
+	totalfixed_kwh = 	sapn_solar_sponge(false) +
 				marketkwhprice->valuedouble +
 				carbonneutralkwhprice->valuedouble;
 			
