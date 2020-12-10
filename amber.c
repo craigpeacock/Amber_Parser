@@ -107,28 +107,87 @@ void parse_amber_json(char *ptr)
 	cJSON *postcode = cJSON_GetObjectItemCaseSensitive(data, "postcode");
 	cJSON *networkProvider = cJSON_GetObjectItemCaseSensitive(data, "networkProvider");
 
-	printf("Current Time: %s\r\n",currentNEMtime->valuestring);
+	printf("Current MEN Time: %s\r\n",currentNEMtime->valuestring);
 	printf("Postcode: %s\r\n",postcode->valuestring);
 	printf("Network Provider: %s\r\n",networkProvider->valuestring);
 
 	cJSON *staticPrices = cJSON_GetObjectItemCaseSensitive(data, "staticPrices");
-	//cJSON_ArrayForEach(parameter, staticPrices)
-	//{
-	//	cJSON *totaldailyprice = cJSON_GetObjectItemCaseSensitive(parameter, "totalDailyPrice");
-	//	printf("Total Daily Price = %.02f c/kWh\r\n", strtod(totaldailyprice->valuestring, NULL));
-	//}
+	/* Amber has four staticPrices arrays labelled E1, E2, B1 and B1PFIT.
+	 * Array 0 (E1) has the data we are after. */
+	parameter = cJSON_GetArrayItem(staticPrices, 0);
+
+	/* Network Daily Price - Fixed daily charge payable to electricity distributor. */
+	cJSON *networkdailyprice = cJSON_GetObjectItemCaseSensitive(parameter, "networkDailyPrice");
+	/* Metering Charges - Fixed daily charge payable to metering provider. */
+	cJSON *basicmeterdailyprice = cJSON_GetObjectItemCaseSensitive(parameter, "basicMeterDailyPrice");
+	cJSON *additionalsmartmeterdailyprice = cJSON_GetObjectItemCaseSensitive(parameter, "additionalSmartMeterDailyPrice");
+	/* Amber Electric's Fee - Fixed daily charge payable to Amber Electric. */
+	cJSON *amberdailyprice = cJSON_GetObjectItemCaseSensitive(parameter, "amberDailyPrice");
+	/* Should be total of above daily charges. */
+	cJSON *totaldailyprice = cJSON_GetObjectItemCaseSensitive(parameter, "totalDailyPrice");
+
+	/* Amber stores values as text, so cJSON's valuedouble field is empty.
+	 * We manually populate it, once the object has been created */
+	networkdailyprice->valuedouble = strtod(networkdailyprice->valuestring, NULL);
+	basicmeterdailyprice->valuedouble = strtod(basicmeterdailyprice->valuestring, NULL);
+	additionalsmartmeterdailyprice->valuedouble = strtod(additionalsmartmeterdailyprice->valuestring, NULL);
+	amberdailyprice->valuedouble = strtod(amberdailyprice->valuestring, NULL);
+	totaldailyprice->valuedouble = strtod(totaldailyprice->valuestring, NULL);
+
+	printf("\r\nDaily Charges (Including GST):\r\n");
+	printf("Fixed Network Charge          = %3.2lf c/day\r\n", networkdailyprice->valuedouble);
+	printf("Basic Metering Charge         = %3.2lf c/day\r\n", basicmeterdailyprice->valuedouble);
+	printf("Additional Smart Meter Charge = %3.2lf c/day\r\n", additionalsmartmeterdailyprice->valuedouble);
+	printf("Amber Price                   = %3.2lf c/day\r\n", amberdailyprice->valuedouble);
+	printf("Total Daily Price             = %3.2lf c/day\r\n", totaldailyprice->valuedouble);
+
+	/* Network Charge - Payable to electricity distributor. May not accurately reflect
+	 * Time of Day (ToD) network tariffs. */
+	cJSON *networkwhprice = cJSON_GetObjectItemCaseSensitive(parameter, "networkKWHPrice");
+	/* Market charges - Includes charges to AEMO and Environmental Certificate Costs. */
+	cJSON *marketkwhprice = cJSON_GetObjectItemCaseSensitive(parameter, "marketKWHPrice");
+	/* Carbon offset charges specific to your Amber plan. You will be on either on the default
+	 * Carbon Neutral or 100% GreenPower Plan - Cost to purchase carbon credits. */
+	cJSON *greenkwhprice = cJSON_GetObjectItemCaseSensitive(parameter, "greenKWHPrice");
+	cJSON *carbonneutralkwhprice = cJSON_GetObjectItemCaseSensitive(parameter, "carbonNeutralKWHPrice");
+	/* Should be total of above kWh charges. */
+	cJSON *totalfixedkwhprice = cJSON_GetObjectItemCaseSensitive(parameter, "totalfixedKWHPrice");
+
+	/* Amber Electric stores values as text, so cJSON's valuedouble field is empty.
+	 * We manually populate it, once the object has been created. */
+	networkwhprice->valuedouble = strtod(networkwhprice->valuestring, NULL);
+	marketkwhprice->valuedouble = strtod(marketkwhprice->valuestring, NULL);
+	greenkwhprice->valuedouble = strtod(greenkwhprice->valuestring, NULL);
+	carbonneutralkwhprice->valuedouble = strtod(carbonneutralkwhprice->valuestring, NULL);
+	totalfixedkwhprice->valuedouble = strtod(totalfixedkwhprice->valuestring, NULL);
+
+	printf("\r\nPer kWh unit Charges (Including GST):\r\n");
+	printf("Network Charge			= %3.3lf c/kWh\r\n", networkwhprice->valuedouble);
+	printf("Market Charge			= %3.3lf c/kWh\r\n", marketkwhprice->valuedouble);
+	printf("100%% Green Power Offset		= %3.3lf c/kWh\r\n", greenkwhprice->valuedouble);
+	printf("Carbon Neutral Offset		= %3.3lf c/kWh\r\n", carbonneutralkwhprice->valuedouble);
+	printf("Total				= %3.3lf c/kWh\r\n", totalfixedkwhprice->valuedouble);
+
+	/* Loss Factor */
+	cJSON *lossfactor = cJSON_GetObjectItemCaseSensitive(parameter, "lossFactor");
+	lossfactor->valuedouble = strtod(lossfactor->valuestring, NULL);
+	printf("\r\nLoss Factor = %3.3lf\r\n", lossfactor->valuedouble);
 
 	cJSON *variablePrices = cJSON_GetObjectItemCaseSensitive(data, "variablePricesAndRenewables");
-	cJSON_ArrayForEach(parameter, variablePrices)
-	{
+
+	printf("\r\n");
+	//cJSON_ArrayForEach(parameter, variablePrices)
+	for (int i = 45; i <= 50; i++) {
+
+		parameter = cJSON_GetArrayItem(variablePrices, i);
+
 		cJSON *period = cJSON_GetObjectItemCaseSensitive(parameter, "period");
-		printf("Period: %s ",period->valuestring);
+		printf("Period Ending: %s ",period->valuestring);
 
 		cJSON *price = cJSON_GetObjectItemCaseSensitive(parameter, "wholesaleKWHPrice");
-		//printf("Price: %s \r\n",price->valuestring);
-
 		price_kwh = strtod(price->valuestring, NULL);
-		printf("Price = %.02f c/kWh\r\n",price_kwh);
+		printf("Spot Price = %.02f c/kWh, Total Price %.02f c/kWh\r\n",price_kwh,
+			(price_kwh * lossfactor->valuedouble) + totalfixedkwhprice->valuedouble);
 	}
 
 	cJSON_Delete(NEM);
