@@ -3,7 +3,7 @@ Parser for Amber Electric JSON electricity pricing data found at https://api.amb
 
 https://www.amberelectric.com.au/ 
 Amber is an Australian Electricity Retailer passing through real-time wholesale pricing. 
-This allows IoT enabled devices to switch on and off based on price signals from the market.
+This allows IoT enabled devices to switch on and off energy hungry loads based on price signals from the market. For example, I am using it to control charging of an Electric Vehicle.
 
 Example output:
 
