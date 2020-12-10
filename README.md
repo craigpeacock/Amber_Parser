@@ -12,7 +12,7 @@ Current MEN Time: 2020-12-10T13:38:06
 Postcode: 5000
 Network Provider: SA Power
 Local Time: Thu Dec 10 14:08:06 2020
-Network Tarrif: Solar Sponge
+Network Tariff: Solar Sponge
 
 Daily Charges (Including GST):
 Fixed Network Charge		= 51.24 c/day
