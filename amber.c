@@ -106,7 +106,7 @@ double sapn_solar_spounge(bool display)
 	if (display) {
 		strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
 		printf("Local Time: %s\n", strftime_buf);
-		printf("Network Tarrif: ");
+		printf("Network Tariff: ");
 	}
 	if ((timeinfo.tm_hour >= 10) && (timeinfo.tm_hour < 15)) {
 		if (display) printf("Solar Sponge\r\n");
