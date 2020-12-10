@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
 
@@ -92,10 +93,42 @@ int main(void)
 	return 0;
 }
 
+
+double sapn_solar_spounge(bool display)
+{
+	double networkwhprice_tod;
+	time_t now;
+	struct tm timeinfo;
+	char strftime_buf[64];
+
+	time(&now);
+	localtime_r(&now, &timeinfo);
+	if (display) {
+		strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+		printf("Local Time: %s\n", strftime_buf);
+		printf("Network Tarrif: ");
+	}
+	if ((timeinfo.tm_hour >= 10) && (timeinfo.tm_hour < 15)) {
+		if (display) printf("Solar Sponge\r\n");
+		/* Prices are GST ex, multipled by 1.1 to correct for GST */ 
+		networkwhprice_tod = 3.45 * 1.1;
+	}
+	else if ((timeinfo.tm_hour >= 1)  && (timeinfo.tm_hour <= 5)) {
+		if (display) printf("Off-Peak\r\n");
+		networkwhprice_tod = 6.9 * 1.1;
+	}
+	else {
+		if (display) printf("Peak\r\n");
+		networkwhprice_tod = 17.23 * 1.1;
+	}
+	
+	return(networkwhprice_tod);
+}
+
 void parse_amber_json(char *ptr)
 {
 	double price_kwh;
-
+	double totalfixed_kwh;
 	const cJSON *data;
 	const cJSON *parameter;
 
@@ -110,6 +143,10 @@ void parse_amber_json(char *ptr)
 	printf("Current MEN Time: %s\r\n",currentNEMtime->valuestring);
 	printf("Postcode: %s\r\n",postcode->valuestring);
 	printf("Network Provider: %s\r\n",networkProvider->valuestring);
+
+	/* SA Power Networks provides a Residential Time of Use ('Solar Sponge') Network Tariff.
+	 * Amber doesn't yet support this pricing structure, so we correct for it ourselves. */
+	sapn_solar_spounge(true);
 
 	cJSON *staticPrices = cJSON_GetObjectItemCaseSensitive(data, "staticPrices");
 	/* Amber has four staticPrices arrays labelled E1, E2, B1 and B1PFIT.
@@ -135,14 +172,14 @@ void parse_amber_json(char *ptr)
 	totaldailyprice->valuedouble = strtod(totaldailyprice->valuestring, NULL);
 
 	printf("\r\nDaily Charges (Including GST):\r\n");
-	printf("Fixed Network Charge          = %3.2lf c/day\r\n", networkdailyprice->valuedouble);
-	printf("Basic Metering Charge         = %3.2lf c/day\r\n", basicmeterdailyprice->valuedouble);
-	printf("Additional Smart Meter Charge = %3.2lf c/day\r\n", additionalsmartmeterdailyprice->valuedouble);
-	printf("Amber Price                   = %3.2lf c/day\r\n", amberdailyprice->valuedouble);
-	printf("Total Daily Price             = %3.2lf c/day\r\n", totaldailyprice->valuedouble);
+	printf("Fixed Network Charge		= %3.2lf c/day\r\n", networkdailyprice->valuedouble);
+	printf("Basic Metering Charge		= %3.2lf c/day\r\n", basicmeterdailyprice->valuedouble);
+	printf("Additional Smart Meter Charge	= %3.2lf c/day\r\n", additionalsmartmeterdailyprice->valuedouble);
+	printf("Amber Price			= %3.2lf c/day\r\n", amberdailyprice->valuedouble);
+	printf("Total Daily Price		= %3.2lf c/day\r\n", totaldailyprice->valuedouble);
 
 	/* Network Charge - Payable to electricity distributor. May not accurately reflect
-	 * Time of Day (ToD) network tariffs. */
+	 * Time of Use (ToU) network tariffs. */
 	cJSON *networkwhprice = cJSON_GetObjectItemCaseSensitive(parameter, "networkKWHPrice");
 	/* Market charges - Includes charges to AEMO and Environmental Certificate Costs. */
 	cJSON *marketkwhprice = cJSON_GetObjectItemCaseSensitive(parameter, "marketKWHPrice");
@@ -162,11 +199,20 @@ void parse_amber_json(char *ptr)
 	totalfixedkwhprice->valuedouble = strtod(totalfixedkwhprice->valuestring, NULL);
 
 	printf("\r\nPer kWh unit Charges (Including GST):\r\n");
-	printf("Network Charge			= %3.3lf c/kWh\r\n", networkwhprice->valuedouble);
-	printf("Market Charge			= %3.3lf c/kWh\r\n", marketkwhprice->valuedouble);
+	printf("Network Charge (Amber)		= %3.3lf c/kWh\r\n", networkwhprice->valuedouble);
+	/* SA Power Networks provides a Residential Time of Use ('Solar Sponge') Network Tariff.
+	 * Amber doesn't yet support this pricing structure, so we correct for it ourselves. */
+	printf("Network Charge (Actual)		= %3.2lf c/kWh\r\n", sapn_solar_spounge(false));
+	printf("Market Charges			= %3.3lf c/kWh\r\n", marketkwhprice->valuedouble);
 	printf("100%% Green Power Offset		= %3.3lf c/kWh\r\n", greenkwhprice->valuedouble);
 	printf("Carbon Neutral Offset		= %3.3lf c/kWh\r\n", carbonneutralkwhprice->valuedouble);
-	printf("Total				= %3.3lf c/kWh\r\n", totalfixedkwhprice->valuedouble);
+	printf("Total (Amber)			= %3.3lf c/kWh\r\n", totalfixedkwhprice->valuedouble);
+	
+	totalfixed_kwh = 	sapn_solar_spounge(false) +
+				marketkwhprice->valuedouble +
+				carbonneutralkwhprice->valuedouble;
+			
+	printf("Total (Actual)			= %3.3lf c/kWh\r\n", totalfixed_kwh);			
 
 	/* Loss Factor */
 	cJSON *lossfactor = cJSON_GetObjectItemCaseSensitive(parameter, "lossFactor");
@@ -177,9 +223,9 @@ void parse_amber_json(char *ptr)
 
 	printf("\r\n");
 	//cJSON_ArrayForEach(parameter, variablePrices)
-	for (int i = 45; i <= 50; i++) {
+	//for (int i = 45; i <= 50; i++) {
 
-		parameter = cJSON_GetArrayItem(variablePrices, i);
+		parameter = cJSON_GetArrayItem(variablePrices, 48);
 
 		cJSON *period = cJSON_GetObjectItemCaseSensitive(parameter, "period");
 		printf("Period Ending: %s ",period->valuestring);
@@ -187,8 +233,8 @@ void parse_amber_json(char *ptr)
 		cJSON *price = cJSON_GetObjectItemCaseSensitive(parameter, "wholesaleKWHPrice");
 		price_kwh = strtod(price->valuestring, NULL);
 		printf("Spot Price = %.02f c/kWh, Total Price %.02f c/kWh\r\n",price_kwh,
-			(price_kwh * lossfactor->valuedouble) + totalfixedkwhprice->valuedouble);
-	}
+			(price_kwh * lossfactor->valuedouble) + totalfixed_kwh);
+	//}
 
 	cJSON_Delete(NEM);
 }
