@@ -37,6 +37,7 @@ struct PRICES {
 };
 
 void parse_amber_json(char *ptr, struct PRICES *prices);
+double sapn_solar_sponge(bool display);
 
 size_t header_callback(char *buffer, size_t size, size_t nitems, void *user_data)
 {
@@ -129,6 +130,10 @@ int main(void)
 	CURLcode res;
 	char *data;
 
+	time_t now;
+	struct tm timeinfo;
+	char strftime_buf[64];
+
 	struct buffer out_buf = {
 		.data = data,
 		.pos = 0
@@ -144,6 +149,15 @@ int main(void)
 
 		if(res == CURLE_OK) {
 			parse_amber_json(out_buf.data, &prices);
+
+			time(&now);
+			localtime_r(&now, &timeinfo);
+			strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+			printf("\r\nLocal Time: %s\n", strftime_buf);
+
+			/* SA Power Networks provides a Residential Time of Use ('Solar Sponge') Network Tariff.
+		 	 * Amber doesn't yet support this pricing structure, so we correct for it ourselves. */
+			prices.unit.networkkwhprice = sapn_solar_sponge(true);
 
 			//printf("Current MEN Time: %s\r\n",prices.currentNEMtime);
 			//printf("Postcode: %s\r\n",prices.postcode);
@@ -168,14 +182,10 @@ int main(void)
 			printf("Renewables			= %.0f percent\r\n", prices.renewablespercentage * 100);
 			printf("Loss Factor			= %3.3lf\r\n", prices.unit.lossfactor);
 
-			/* SA Power Networks provides a Residential Time of Use ('Solar Sponge') Network Tariff.
-		 	 * Amber doesn't yet support this pricing structure, so we correct for it ourselves. */
-			//sapn_solar_sponge(true);
-
 			printf("\r\n");
 			printf("Spot Price			= %.02f c/kWh\r\n", prices.currentwholesaleKWHPrice);
-			printf("Total Price			= %.01f c/kWh\r\n", 
-				(prices.currentwholesaleKWHPrice * prices.unit.lossfactor) 
+			printf("Total Price			= %.01f c/kWh\r\n",
+				(prices.currentwholesaleKWHPrice * prices.unit.lossfactor)
 				+ prices.unit.totalfixedkwhprice);
 
 		}
@@ -194,14 +204,11 @@ double sapn_solar_sponge(bool display)
 
 	time(&now);
 	localtime_r(&now, &timeinfo);
-	if (display) {
-		strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-		printf("Local Time: %s\n", strftime_buf);
-		printf("Network Tariff: ");
-	}
+	if (display) printf("Network ToD Tariff: ");
+
 	if ((timeinfo.tm_hour >= 10) && (timeinfo.tm_hour < 15)) {
 		if (display) printf("Solar Sponge\r\n");
-		/* Prices are GST ex, multipled by 1.1 to correct for GST */ 
+		/* Prices are GST ex, multipled by 1.1 to correct for GST */
 		networkwhprice_tod = 3.45 * 1.1;
 	}
 	else if ((timeinfo.tm_hour >= 1)  && (timeinfo.tm_hour <= 5)) {
@@ -212,7 +219,7 @@ double sapn_solar_sponge(bool display)
 		if (display) printf("Peak\r\n");
 		networkwhprice_tod = 17.23 * 1.1;
 	}
-	
+
 	return(networkwhprice_tod);
 }
 
