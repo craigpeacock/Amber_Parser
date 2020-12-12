@@ -13,6 +13,12 @@ struct buffer {
 	size_t pos;
 };
 
+size_t header_callback(char *buffer, size_t size, size_t nitems, void *userdata)
+{
+	printf("%.*s", (int)(nitems * size), buffer);
+	return(size * nitems);
+}
+
 size_t write_callback(char *ptr, size_t size, size_t nmemb, void *user_data)
 {
 	struct buffer *out_buf = (struct buffer *)user_data;
@@ -46,6 +52,7 @@ int main(void)
 		curl_easy_setopt(curl, CURLOPT_URL, "https://api.amberelectric.com.au/prices/listprices");
 		//curl_easy_setopt(curl, CURLOPT_HTTPHEADER, "Content-Type: application/json");
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "{\"postcode\":\"5000\"}");
+		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out_buf);
 
