@@ -24,7 +24,7 @@ size_t write_callback(char *ptr, size_t size, size_t nmemb, void *user_data)
 	struct buffer *out_buf = (struct buffer *)user_data;
 	size_t buffersize = size * nmemb;
 
-	printf("size %ld, nmemb %ld\r\n",size, nmemb);
+	//printf("size %ld, nmemb %ld\r\n",size, nmemb);
 
 	char *newptr = realloc(out_buf->data, (out_buf->pos + buffersize + 1));
 	if (newptr == NULL) {
@@ -39,19 +39,10 @@ size_t write_callback(char *ptr, size_t size, size_t nmemb, void *user_data)
 	return(size * nmemb);
 }
 
-int main(void)
+int http_json_request(struct buffer *out_buf)
 {
 	CURL *curl;
 	CURLcode res;
-
-	/* Allocate a modest buffer now, we can realloc later if needed */
-	char *data;
-	data = malloc(16384);
-
-	struct buffer out_buf = {
-		.data = data,
-		.pos = 0
-	};
 
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
@@ -63,7 +54,7 @@ int main(void)
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "{\"postcode\":\"5000\"}");
 		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out_buf);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, out_buf);
 
 #ifdef SKIP_PEER_VERIFICATION
 		/*
@@ -97,7 +88,6 @@ int main(void)
 		} else {
 			//printf("Bytes read %ld\r\n",out_buf.pos);
 			//printf("[%.*s]\r\n",(int)out_buf.pos, out_buf.data);
-			parse_amber_json(out_buf.data);
 		}
 
 		/* always cleanup */
@@ -106,7 +96,26 @@ int main(void)
 
 	curl_global_cleanup();
 
-	return 0;
+	return res;
+}
+
+int main(void)
+{
+	CURLcode res;
+	char *data;
+
+	struct buffer out_buf = {
+		.data = data,
+		.pos = 0
+	};
+
+	/* Allocate a modest buffer now, we can realloc later if needed */
+	out_buf.data = malloc(16384);
+	res = http_json_request(&out_buf);
+	if(res == CURLE_OK) {
+		parse_amber_json(out_buf.data);
+	}
+	free(out_buf.data);
 }
 
 
