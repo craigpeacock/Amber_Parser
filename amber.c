@@ -13,7 +13,7 @@ struct buffer {
 	size_t pos;
 };
 
-size_t header_callback(char *buffer, size_t size, size_t nitems, void *userdata)
+size_t header_callback(char *buffer, size_t size, size_t nitems, void *user_data)
 {
 	printf("%.*s", (int)(nitems * size), buffer);
 	return(size * nitems);
@@ -22,11 +22,19 @@ size_t header_callback(char *buffer, size_t size, size_t nitems, void *userdata)
 size_t write_callback(char *ptr, size_t size, size_t nmemb, void *user_data)
 {
 	struct buffer *out_buf = (struct buffer *)user_data;
+	size_t buffersize = size * nmemb;
 
-	//printf("size %ld, nmemb %ld\r\n",size, nmemb);
+	printf("size %ld, nmemb %ld\r\n",size, nmemb);
 
-	memcpy((void *)(out_buf->data + out_buf->pos), ptr, size * nmemb);
-	out_buf->pos += size * nmemb;
+	char *newptr = realloc(out_buf->data, (out_buf->pos + buffersize + 1));
+	if (newptr == NULL) {
+		printf("Failed to allocate buffer\r\n");
+		return 0;
+	}
+
+	out_buf->data = newptr;
+	memcpy((void *)(out_buf->data + out_buf->pos), ptr, buffersize);
+	out_buf->pos += buffersize;
 
 	return(size * nmemb);
 }
@@ -36,8 +44,9 @@ int main(void)
 	CURL *curl;
 	CURLcode res;
 
+	/* Allocate a modest buffer now, we can realloc later if needed */
 	char *data;
-	data = malloc(131072);
+	data = malloc(16384);
 
 	struct buffer out_buf = {
 		.data = data,
