@@ -145,6 +145,7 @@ int main(void)
 
 		/* Allocate a modest buffer now, we can realloc later if needed */
 		out_buf.data = malloc(16384);
+		out_buf.pos = 0;
 		res = http_json_request(&out_buf);
 
 		if(res == CURLE_OK) {
