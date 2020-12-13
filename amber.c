@@ -159,6 +159,9 @@ int main(void)
 			/* SA Power Networks provides a Residential Time of Use ('Solar Sponge') Network Tariff.
 		 	 * Amber doesn't yet support this pricing structure, so we correct for it ourselves. */
 			prices.unit.networkkwhprice = sapn_solar_sponge(true);
+			prices.unit.totalfixedkwhprice = 	prices.unit.networkkwhprice +
+								prices.unit.marketkwhprice +
+								prices.unit.carbonneutralkwhprice;
 
 			//printf("Current MEN Time: %s\r\n",prices.currentNEMtime);
 			//printf("Postcode: %s\r\n",prices.postcode);
