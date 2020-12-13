@@ -237,8 +237,16 @@ void parse_amber_json(char *ptr, struct PRICES *prices)
 	cJSON *parameter;
 
 	NEM = cJSON_Parse(ptr);
-
+	if (NEM == NULL) {
+		printf("Unable to parse JSON file\r\n");
+		return;
+	}
+	
 	data = cJSON_GetObjectItemCaseSensitive(NEM, "data");
+	if (data == NULL) {
+		printf("Cannot find data object\r\n");
+		return;
+	}
 
 	cJSON *currentNEMtime = cJSON_GetObjectItemCaseSensitive(data, "currentNEMtime");
 	cJSON *postcode = cJSON_GetObjectItemCaseSensitive(data, "postcode");
