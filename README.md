@@ -8,31 +8,33 @@ This allows IoT enabled devices to switch on and off energy hungry loads based o
 Example output:
 
 ```
-Current MEN Time: 2020-12-10T13:38:06
-Postcode: 5000
-Network Provider: SA Power
-Local Time: Thu Dec 10 14:08:06 2020
-Network Tariff: Solar Sponge
+JSON File Parser
+Amber Electric
+Current NEM Time 		2021-03-06 21:16:54
+Postcode 			5000
+Network Provider 		SA Power
 
-Daily Charges (Including GST):
-Fixed Network Charge		= 51.24 c/day
-Basic Metering Charge		= 0.00 c/day
-Additional Smart Meter Charge	= 41.56 c/day
-Amber Price			= 32.88 c/day
-Total Daily Price		= 125.67 c/day
+Daily Charges:
+Fixed Network Charge		51.24 c/day
+Basic Metering Charge		0.00 c/day
+Additional Smart Meter Charge	41.56 c/day
+Amber Price			32.88 c/day
+Total Daily Price		125.67 c/day
 
-Per kWh unit Charges (Including GST):
-Network Charge (Amber)		= 15.158 c/kWh
-Network Charge (Actual)		= 3.80 c/day
-Market Charge			= 2.678 c/kWh
-100% Green Power Offset		= 4.247 c/kWh
-Carbon Neutral Offset		= 0.110 c/kWh
-Total (Amber)			= 17.946 c/kWh
-Total (Actual)			= 6.583 c/kWh
+Per kWh unit Charges:
+Network Charges		15.158 c/kWh
+Market Charges			2.678 c/kWh
+100 percent Green Power Offset 4.247 c/kWh
+Carbon Neutral Offset		0.110 c/kWh
+Total 				17.946 c/kWh
 
-Loss Factor = 1.106
+Renewables			38 percent
+Loss Factor			1.10606
 
-Period Ending: 2020-12-10T14:00:00 Spot Price = -11.26 c/kWh, Total Price -5.87 c/kWh
+Wholesale Spot Market Price	3.87 c/kWh
+Total Price			22.2 c/kWh
+All prices include GST
+
 ```
 
 Code is written in C and designed to be transferred to embedded MCU such as the ESP32:
