@@ -43,7 +43,6 @@ int main(int argc, char **argv)
 	prices.networkprovider = NULL;
 
 	unsigned int state = IDLE;
-	unsigned char number_tries;
 
 	FILE *fhandle;
 
@@ -93,7 +92,6 @@ int main(int argc, char **argv)
 					//printf("[mod] = %d\r\n",modulo);
 					if ((modulo == 2) | (modulo == 7)) {
 						state = FETCH;
-						number_tries = 0;
 					}
 				}
 				break;
@@ -119,7 +117,6 @@ int main(int argc, char **argv)
 					/* Print a dot each time we make a HTTP request */
 					//printf(".");
 					//fflush(stdout);
-					number_tries++;
 
 					if ((prices.latestperiod.tm_min != previous_period) ||
 					    (prices.currentwholesaleKWHPrice != previous_price)) {
