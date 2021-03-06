@@ -1,10 +1,6 @@
-amber : amber.o 
-	cc -o amber amber.o -lcurl -lcjson
-
-amber.o : amber.c
-	cc -c amber.c
+amber : main.c http.c parser.c
+	cc -o amber main.c http.c parser.c -lcurl -lcjson
 
 clean :
-	rm amber amber.o 
-        
-        
+	rm amber
+
