@@ -1,16 +1,18 @@
 # Amber_Parser
 Parser for Amber Electric JSON electricity pricing data found at https://api.amberelectric.com.au/prices/listprices
 
-https://www.amberelectric.com.au/ 
+https://www.amberelectric.com.au/
+ 
 Amber is an Australian Electricity Retailer passing through real-time wholesale pricing. 
 This allows IoT enabled devices to switch on and off energy hungry loads based on price signals from the market. For example, I am using it to control charging of an Electric Vehicle.
 
 Example output:
 
 ```
+# ./amber -p 5000 -i
 JSON File Parser
 Amber Electric
-Current NEM Time 		2021-03-06 21:16:54
+Current NEM Time 		2021-03-08 12:28:25
 Postcode 			5000
 Network Provider 		SA Power
 
@@ -22,28 +24,40 @@ Amber Price			32.88 c/day
 Total Daily Price		125.67 c/day
 
 Per kWh unit Charges:
-Network Charges		15.158 c/kWh
+Network Charges			15.158 c/kWh
 Market Charges			2.678 c/kWh
-100 percent Green Power Offset 4.247 c/kWh
+100 percent Green Power Offset  4.247 c/kWh
 Carbon Neutral Offset		0.110 c/kWh
 Total 				17.946 c/kWh
 
-Renewables			38 percent
+Renewables			104 percent
 Loss Factor			1.10606
 
-Wholesale Spot Market Price	3.87 c/kWh
-Total Price			22.2 c/kWh
+Wholesale Spot Market Price	2.42 c/kWh
+Total Price			20.6 c/kWh
 All prices include GST
+
 
 ```
 
-Code is written in C and designed to be transferred to embedded MCU such as the ESP32:
+Code is written in C and designed with the intention be transferred to embedded MCU such as the ESP32:
 https://github.com/craigpeacock/ESP32_DINTimeSwitch
 
 ## Dependencies
 This code uses the following libraries
 * cURL (https://curl.haxx.se/)
+  * Requires OpenSSL for https support (https://www.openssl.org/)
 * cJSON (https://github.com/DaveGamble/cJSON)
+
+## Install OpenSSL
+```sh
+$ wget https://www.openssl.org/source/openssl-1.1.1i.tar.gz
+$ tar -xzf openssl-1.1.1i.tar.gz
+$ cd openssl-1.1.1i/
+$ ./config
+$ make
+$ sudo make install
+```
 
 ## Install cURL
 ```sh
