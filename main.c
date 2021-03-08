@@ -70,9 +70,8 @@ int main(int argc, char **argv)
 	time_t now;
 	struct tm timeinfo;
 
-	char *data;
 	struct buffer out_buf = {
-		.data = data,
+		.data = NULL,
 		.pos = 0
 	};
 
@@ -101,7 +100,7 @@ int main(int argc, char **argv)
 		/* Get Time. */
 		time(&now);
 		localtime_r(&now, &timeinfo);
-		printf("[%02d:%02d] %d\r\n",timeinfo.tm_min, timeinfo.tm_sec, state);
+		//printf("[%02d:%02d] %d\r\n",timeinfo.tm_min, timeinfo.tm_sec, state);
 
 		switch (state) {
 
