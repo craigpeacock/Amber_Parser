@@ -1,11 +1,10 @@
-
+	
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <curl/curl.h>
-#include <cjson/cJSON.h>
 #include <time.h>
 #include <libgen.h>
 #include "http.h"
@@ -20,43 +19,29 @@ void display_extended_pricing(char *postcode);
 #define IDLE 	0
 #define FETCH 	1
 
+static void print_usage(char *prg)
+{
+	fprintf(stderr, "Usage: %s [options]\n",prg);
+	fprintf(stderr, "Options:\n");
+	fprintf(stderr, "	-p <postcode>\n");
+	fprintf(stderr, "	-i 		Show daily and unit charges\n");
+	fprintf(stderr, "	-l <filename> 	Log to file\n");
+	fprintf(stderr, "\n");
+}
+
 int main(int argc, char **argv)
 {
-	CURLcode res;
-	char *data;
+	/* Default Postcode, if not specified as an argument */
 	char postcode[4] = {"5000"};
 
-	int modulo;
+	char * logfilename;
+	bool logtofile = false;
 
-	time_t now;
-	struct tm timeinfo;
-
-	struct buffer out_buf = {
-		.data = data,
-		.pos = 0
-	};
-
-	int previous_period = -1;
-	double previous_price = 0;
-
-	struct PRICES prices;
-	prices.networkprovider = NULL;
-
-	unsigned int state = IDLE;
-
-	FILE *fhandle;
-
-	fhandle = fopen("Amberdata.csv","a+");
-	if (fhandle == NULL) {
-		printf("Unable to open Amberdata.csv for writing\r\n");
-		exit(1);
-	}
-
-	printf("JSON File Parser\r\nAmber Electric\r\n");
+	printf("Amber Electric API/JSON Connector\r\n");
 
 	int opt;
 
-	while ((opt = getopt(argc, argv, "p:i?")) != -1) {
+	while ((opt = getopt(argc, argv, "p:il:?")) != -1) {
 		switch (opt) {
 		case 'p':
 			printf("Postcode = %s\r\n",optarg);
@@ -67,6 +52,11 @@ int main(int argc, char **argv)
 			display_extended_pricing(postcode);
 			exit(1);
 			break;
+		case 'l':
+			logfilename = (char *)optarg;
+			printf("Logging to %s\r\n",logfilename);
+			logtofile = true;
+			break;
 
 		default:
 			print_usage(basename(argv[0]));
@@ -75,81 +65,104 @@ int main(int argc, char **argv)
 		}
 	}
 
+	CURLcode res;
+
+	time_t now;
+	struct tm timeinfo;
+
+	char *data;
+	struct buffer out_buf = {
+		.data = data,
+		.pos = 0
+	};
+
+	int previous_period = -1;
+	double previous_price = 0;
+
+	struct PRICES prices = {0};
+
+	unsigned int state = IDLE;
+
+	FILE *fhandle;
+
+	if (logtofile) {
+		fhandle = fopen(logfilename,"a+");
+		if (fhandle == NULL) {
+			printf("Unable to open %s for writing\r\n",logfilename);
+			exit(1);
+		}
+	}
+
+	/* Set the initial state to FETCH, so we immediately retrieve data for 5 minute period. */
 	state = FETCH;
 
 	while (1) {
 
-		/* Get Time */
+		/* Get Time. */
 		time(&now);
 		localtime_r(&now, &timeinfo);
-		//printf("[%02d:%02d] %d\r\n",timeinfo.tm_min, timeinfo.tm_sec, state);
+		printf("[%02d:%02d] %d\r\n",timeinfo.tm_min, timeinfo.tm_sec, state);
 
 		switch (state) {
 
 			case IDLE:
+				/* Fetch JSON file 2 minutes after the start of each 5 minute period. */
 				if (timeinfo.tm_sec == 0) {
-					modulo = timeinfo.tm_min % 10;
-					//printf("[mod] = %d\r\n",modulo);
-					if ((modulo == 2) | (modulo == 7)) {
+					if (((timeinfo.tm_min % 10) == 2) | ((timeinfo.tm_min % 10) == 7)) {
 						state = FETCH;
 					}
 				}
 				break;
 
 			case FETCH:
-				/* Start fetching a new JSON file. We keep trying every 5 seconds until */
-				/* the settlement time is different from the previous period */
+				/* Start fetching a new JSON file. We keep trying until the latest */
+				/* period time or price is different from the previous period. */
 
-				/* Allocate a modest buffer now, we can realloc later if needed */
-				if (out_buf.data != NULL) free(out_buf.data);
-				out_buf.data = malloc(65536);
+				if (out_buf.data != NULL)
+					free(out_buf.data);
+
+				/* Allocate a modest buffer now, we can realloc later if needed. */
+				out_buf.data = malloc(16384);
 				if (out_buf.data == NULL) {
 					printf("Error allocating memory\r\n");
 				}
 				out_buf.pos = 0;
 
-				/* Fetch JSON file */
+				/* Fetch JSON file. */
 				res = http_json_request(&out_buf, postcode);
 				if(res == CURLE_OK) {
-					/* If HTTP request was successful, parse request */
+					/* If HTTP request was successful, parse request. */
 					parse_amber_json(out_buf.data, &prices);
 
-					/* Print a dot each time we make a HTTP request */
+					/* Print a dot each time we make a HTTP request. */
 					//printf(".");
 					//fflush(stdout);
 
 					if ((prices.latestperiod.tm_min != previous_period) ||
 					    (prices.currentwholesaleKWHPrice != previous_price)) {
-						/* Change in settlement time, log new period */
+						/* Change in settlement time, log new period. */
 						previous_period = prices.latestperiod.tm_min;
 						previous_price = prices.currentwholesaleKWHPrice;
 
 						display_prices(&prices);
-						log_prices(fhandle, &prices);
+						if (logtofile) log_prices(fhandle, &prices);
 
-						/* Success, go back to IDLE */
+						/* Success, go back to IDLE. */
 						state = IDLE;
 						break;
 					}
 
 				}
-				/* No luck, we will try again in ten */
+				/* No luck, we will try again in ten. */
 				sleep(10);
 				break;
 
 			}
 			sleep(1);
 	} // end while - we should never get here
-	//free(out_buf.data);
-}
+	free(out_buf.data);
 
-static void print_usage(char *prg)
-{
-	fprintf(stderr, "Usage: %s [options]\n",prg);
-	fprintf(stderr, "Options:\n");
-	fprintf(stderr, "	-p <postcode>\n");
-	fprintf(stderr, "	-i 		Show daily and unit charges\n");
-	fprintf(stderr, "\n");
+	if (logtofile) fclose(fhandle);
 }
 
 double sapn_solar_sponge(bool display)
