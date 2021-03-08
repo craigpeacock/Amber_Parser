@@ -31,4 +31,3 @@ struct PRICES {
 
 void parse_amber_json(char *ptr, struct PRICES *prices);
 
-char *strptime(const char *s, const char *format, struct tm *tm);

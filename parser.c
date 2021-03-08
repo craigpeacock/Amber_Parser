@@ -1,12 +1,9 @@
+#define _XOPEN_SOURCE 700	// required for strptime
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <curl/curl.h>
 #include <cjson/cJSON.h>
 #include <time.h>
-#include <libgen.h>
 #include "http.h"
 #include "parser.h"
 
